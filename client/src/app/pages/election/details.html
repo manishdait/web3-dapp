@@ -1,0 +1,50 @@
+<div class="text-neutral-800">
+  @if (election() !== null) {
+    <h1 class="text-2xl font-medium">{{ election()!.name.toUpperCase() }}</h1>
+
+    <ul class="mt-4">
+      @for (candidate of election()!.candidates; track candidate.id) {
+        <li class="flex gap-2 items-center justify-between w-full border-[.1em] border-gray-200 rounded-md p-4">
+          <div class="flex flex-col gap-1">
+            <span class="text-[1.2rem] font-semibold">{{ candidate.name }}</span>
+            <span>{{ 'Vote Count: ' + candidate.voteCount }}</span>
+          </div>
+
+          @if (election()!.state === 1) {
+            <button class="border-[.1em] border-purple-600 rounded-md text-1rem text-purple-600 font-medium px-2 py-1 cursor-pointer hover:bg-neutral-900/10">Vote</button>
+          }
+        </li>
+      } @empty {
+        <li class="w-full border-[.1em] border-gray-200 rounded-md p-4">
+          <span>No candidates available for these candidates...</span>
+        </li>
+      }
+    </ul>
+
+    @if (isAdmin() && election()!.state === 0) {
+      <div class="mt-4 flex-wrap flex items-center justify-end gap-4">
+        <button class="bg-purple-600 border-[.1em] border-purple-600 rounded-md text-1rem text-white font-medium px-2 py-1 cursor-pointer hover:bg-purple-700 hover:border-purple-700" (click)="toggleCandidateForm()">Register Candidate</button>
+        <button class="bg-purple-600 border-[.1em] border-purple-600 rounded-md text-1rem text-white font-medium px-2 py-1 cursor-pointer hover:bg-purple-700 hover:border-purple-700">Register Voter</button>
+        <button class="bg-purple-600 border-[.1em] border-purple-600 rounded-md text-1rem text-white font-medium px-2 py-1 cursor-pointer hover:bg-purple-700 hover:border-purple-700">Start Election</button>
+      </div>
+    }
+  }
+</div>
+
+@if (candidateForm()) {
+  <div class="fixed top-0 left-0 flex items-center justify-center p-4 w-screen h-full bg-neutral-900/10 z-10">
+    <div class="w-[min(100%,500px)] bg-white rounded-lg p-4">
+      <h1 class="text-2xl font-medium text-neutral-800">Register Candidate</h1>
+        
+      <div class="mt-4 flex flex-col gap-1">
+        <label class="text-sm" for="name">Candidate Name</label>
+        <input class="text-base p-2 border-[.1em] rounded-md outline-none border-gray-200 focus:border-purple-600" id="name" type="text" placeholder="eg.Jhon Doe" required=true #name/>
+      </div>
+
+      <div class="mt-4 flex gap-2">
+        <button class="border-[.1em] border-purple-600 rounded-md text-1rem text-purple-600 font-medium px-2 py-1 cursor-pointer hover:bg-neutral-900/10" type="button" (click)="toggleCandidateForm()">Cancel</button>
+        <button class="bg-purple-600 border-[.1em] border-purple-600 rounded-md text-1rem text-white font-medium px-2 py-1 cursor-pointer hover:bg-purple-700 hover:border-purple-700" (click)="registerCandidateTx(name.value)">Register</button>
+      </div>
+    </div>
+  </div>
+}

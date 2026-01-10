@@ -4,14 +4,23 @@
 </div>
 
 <div class="p-4">
-  <h1 class="text-2xl text-neutral-800">Active Elections</h1>
-
-  <div class="flex gap-4 flex-wrap py-4">
-    @for (election of elections(); track election.id) {
-      <div class="w-[min(100%,20rem)] flex flex-col gap-2 rounded-md border-[.1em] border-gray-200 p-4">
-        <span class="text-[1.2rem] font-semibold text-purple-600">{{ election.name.toUpperCase() }}</span>
-        <span class="text-sm">{{ 'Candidates Count: ' + election.candidates.length }}</span>
-      </div>
-    }
-  </div>
+  <router-outlet/>
 </div>
+
+@if (electionForm()) {
+  <div class="top-0 left-0 fixed flex items-center justify-center p-4 bg-neutral-900/10 z-10 w-screen h-screen">
+    <div class="w-[min(100%,500px)] bg-white rounded-lg p-4">
+      <h1 class="text-2xl font-medium text-neutral-800">Create an Election</h1>
+        
+      <div class="mt-4 flex flex-col gap-1">
+        <label class="text-sm" for="name">Election Name</label>
+        <input class="text-base p-2 border-[.1em] rounded-md outline-none border-gray-200 focus:border-purple-600" id="name" type="text" placeholder="eg.University Council Election" required=true #name/>
+      </div>
+
+      <div class="mt-4 flex gap-2">
+        <button class="border-[.1em] border-purple-600 rounded-md text-1rem text-purple-600 font-medium px-2 py-1 cursor-pointer hover:bg-neutral-900/10" type="button" (click)="toggleElectionForm()">Cancel</button>
+        <button class="bg-purple-600 border-[.1em] border-purple-600 rounded-md text-1rem text-white font-medium px-2 py-1 cursor-pointer hover:bg-purple-700 hover:border-purple-700" (click)="createElectionTx(name.value)">Create</button>
+      </div>
+    </div>
+  </div>
+}

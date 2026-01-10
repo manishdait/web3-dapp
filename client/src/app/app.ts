@@ -1,39 +1,41 @@
 import { Component, inject, signal } from '@angular/core';
 import { WalletService } from './services/wallet.service';
 import { TransactionService } from './services/transaction.service';
-import { Election } from './model/election.model';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  imports: [],
+  imports: [RouterOutlet],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App {
-  private readonly walletService = inject(WalletService);
   private readonly transactionService = inject(TransactionService);
+  private readonly walletService = inject(WalletService);
 
-  elections = signal<Election[]>([]);
+  isAdmin = signal(false);
+  electionForm = signal(false);
 
   constructor () {
     if (!this.walletService.hasWallet) {
       // todo: add a alert dialog box
       alert("No Wallet Detected");
     }
-
-    this.transactionService.getElections()
-      .then(v => {
-        this.elections.set(v);
-        console.log(this.elections());
-      });
   }
 
   async connectWallet() {
     const connected = await this.walletService.connectWallet();
-    console.log(connected);
+    
+    if (connected) {
+      this.isAdmin.set(this.walletService.isAdmin);
+    }
   }
 
-  async createElection() {
-    this.transactionService.createElection(this.walletService.signer, "Test Election");
+  async createElectionTx(electionName: string) {
+    this.transactionService.createElection(electionName, this.walletService.signer);
+  }
+
+  toggleElectionForm() {
+    this.electionForm.update(toggle => !toggle);
   }
 }

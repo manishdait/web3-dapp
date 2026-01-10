@@ -16,31 +16,22 @@ export class TransactionService {
     this.contract = Voating__factory.connect("0x5FbDB2315678afecb367f032d93F642f64180aa3", this.rpcProvider);
   }
 
-  async getElections() {
+  async getAdmin(): Promise<string> {
+    return await this.contract!.connect(this.rpcProvider).admin()
+  }
+
+  async getElections(): Promise<Election[]> {
     const count: number = Number(await this.contract!.connect(this.rpcProvider).electionCount());
     const elections: Election[] = [];
 
     for (let i = 0; i < count; i++) {
       const election = await this.contract!.connect(this.rpcProvider).getElection(i);
-      const fetchCanidates = await this.contract!.connect(this.rpcProvider).getCandidates(i);
-
-      const candidates: Candidates[] = [];
+      const candidates: Candidates[] =await this.getCandidates(i);
       
-      for (let j = 0; j < fetchCanidates.length; j++) {
-        const candidate = fetchCanidates[j];
-        
-        candidates.push({
-          id: j,
-          name: candidate.name,
-          voteCount: Number(candidate.count)
-        });
-      }
-
       elections.push({
         id: i,
         name: election.name,
-        isActive: election.isActive,
-        isEnded: election.isEnded,
+        state: Number(election.state),
         candidates: candidates
       });
     }
@@ -48,11 +39,40 @@ export class TransactionService {
     return elections;
   }
 
-  async createElection(provider: JsonRpcSigner, electionName: string) {
-    console.log("caliing");
-    
-    await this.contract!.connect(provider).createElection(electionName);
-    console.log("done");
-    
+  async getCandidates(candidateId: number): Promise<Candidates[]> {
+    const fetchCanidates = await this.contract!.connect(this.rpcProvider).getCandidates(candidateId);
+    const candidates: Candidates[] = [];
+
+    for (let j = 0; j < fetchCanidates.length; j++) {
+      const candidate = fetchCanidates[j];
+        
+      candidates.push({
+        id: j,
+        name: candidate.name,
+        voteCount: Number(candidate.count)
+      });
+    }
+
+    return candidates;
+  }
+
+  async createElection(electionName: string, signer: JsonRpcSigner) {
+    await this.contract!.connect(signer).createElection(electionName);
+  }
+
+  async getElection(electionId: number): Promise<Election> {
+    const fetchElection = await this.contract!.getElection(electionId);
+    const candidates = await this.getCandidates(electionId);
+
+    return {
+      id: electionId,
+      name: fetchElection.name,
+      state: Number(fetchElection.state),
+      candidates: candidates
+    }
+  }
+
+  async registerCandidate(electionId: number, candidateName: string, signer: JsonRpcSigner) {
+    await this.contract!.connect(signer).addCandidates(electionId, candidateName);
   }
 }

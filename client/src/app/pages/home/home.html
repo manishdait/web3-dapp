@@ -1,0 +1,20 @@
+<div class="flex items-center justify-between">
+  <h1 class="text-2xl text-neutral-800">Elections</h1>
+    
+  @if (isAdmin()) {
+    <button class="border-[.1em] border-purple-600 rounded-md p-2 text-base font-medium text-purple-600 cursor-pointer hover:bg-neutral-900/10" type="button" (click)="toggleElectionForm()">Create Election</button>
+  }
+</div>
+
+<div class="flex gap-4 flex-wrap py-4">
+  @for (election of elections(); track election.id) {
+    <div class="w-[min(100%,20rem)] flex flex-col gap-2 rounded-md border-[.1em] border-gray-200 p-4 cursor-pointer hover:shadow-sm" routerLink="{{ 'election/' + election.id }}">
+      <span class="text-[1.2rem] font-semibold text-purple-600">{{ election.name.toUpperCase() }}</span>
+      <span class="text-sm">{{ 'Candidates Count: ' + election.candidates.length }}</span>
+    </div>
+  } @empty {
+    <div class="w-full rounded-md border-[.1em] border-gray-200 p-4">
+      <span class="text-base text-gray-800">No elections has been created yet..</span>
+    </div>
+  }
+</div>
