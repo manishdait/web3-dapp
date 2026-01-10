@@ -17,7 +17,7 @@ describe('Voating', async function () {
   });
 
   describe('constructor()', async function () {
-    it('should set the internal parameter', async () => {
+    it('should set the constuctor param admin for the contract', async () => {
       const admin = await contract.admin();
       const expectedAdmin = signers[0].address;
 
@@ -26,18 +26,17 @@ describe('Voating', async function () {
   });
 
   describe('createElection()', async function () {
-    it('should create an election with given name', async () => {
+    it('should create an election with given name if call by admin', async () => {
       await expect(contract.createElection('Test Election'))
         .to.emit(contract, 'ElectionCreated')
         .withArgs(0, 'Test Election');
 
       const election = await contract.getElection(0);
       expect(election.name).to.equal("Test Election");
-      expect(election.isActive).to.equal(true);
-      expect(election.isEnded).to.equal(false);
+      expect(election.state).to.equal(BigInt(0))
     });
 
-    it('should raise error on creating election if not admin', async () => {
+    it('should raise error on create election if not call by admin', async () => {
       await expect(contract.connect(signers[1]).createElection('Test Election'))
         .to.be.revertedWithCustomError(contract, 'NotAdmin');
     });
@@ -48,7 +47,7 @@ describe('Voating', async function () {
       await contract.createElection('Test Election');
     });
 
-    it('should add candidate for valid elction', async () => {
+    it('should add candidate if election state is initiated', async () => {
       await expect(contract.addCandidates(0, 'Jhon'))
         .to.emit(contract, 'CandidateAdded')
         .withArgs(0, 0, 'Jhon');
@@ -58,18 +57,26 @@ describe('Voating', async function () {
       assert.equal(candidates[0].name, 'Jhon');
     });
 
-    it('should raise error when candiated added to ended election', async () => {
-      await contract.endElection(0);
+    it('should raise error on add candidate if election state is active', async () => {
+      await contract.startElection(0);
+
       await expect(contract.addCandidates(0, 'Jhon'))
         .to.be.revertedWithCustomError(contract, 'CandidatesLocked');
     });
 
-    it('should raise error when candiated added with invalid election id', async () => {
+    it('should raise error on add candidate if election state is ended', async () => {
+      await contract.endElection(0);
+
+      await expect(contract.addCandidates(0, 'Jhon'))
+        .to.be.revertedWithCustomError(contract, 'CandidatesLocked');
+    });
+
+    it('should raise error on add candiate for an invalid election id', async () => {
       await expect(contract.addCandidates(1, 'Jhon'))
         .to.be.revertedWithCustomError(contract, 'ElectionNotExists');
     });
 
-    it('should raise error when candiated added by not admin', async () => {
+    it('should raise error on add candiate if call by non admin', async () => {
       await expect(contract.connect(signers[1]).addCandidates(0, 'Jhon'))
         .to.be.revertedWithCustomError(contract, 'NotAdmin');
     });
@@ -80,7 +87,7 @@ describe('Voating', async function () {
       await contract.createElection('Test Election');
     });
 
-    it('should register the voter', async () => {
+    it('should register the voter if election state is initiated', async () => {
       await expect(contract.registerVoter(0, signers[1].address))
         .to.emit(contract, "VoterRegister")
         .withArgs(0, signers[1].address);
@@ -88,12 +95,26 @@ describe('Voating', async function () {
       assert.equal(await contract.isVoterRegister(0, signers[1].address), true);
     });
 
-    it('should raise error when register voter with invalid election id', async () => {
+    it('should raise error on register voter if election state is active', async () => {
+      await contract.startElection(0);
+
+      await expect(contract.registerVoter(0, signers[0].address))
+        .to.be.revertedWithCustomError(contract, 'VotersLocked');
+    });
+
+    it('should raise error on register voter if election state is ended', async () => {
+      await contract.endElection(0);
+
+      await expect(contract.registerVoter(0, signers[0].address))
+        .to.be.revertedWithCustomError(contract, 'VotersLocked');
+    });
+
+    it('should raise error on register voter for an invalid election id', async () => {
       await expect(contract.registerVoter(1, signers[0].address))
         .to.be.revertedWithCustomError(contract, 'ElectionNotExists');
     });
 
-    it('should raise error when register voter by not admin', async () => {
+    it('should raise error on register voter if call by non admin', async () => {
       await expect(contract.connect(signers[1]).registerVoter(0, signers[1].address))
         .to.be.revertedWithCustomError(contract, 'NotAdmin');
     });
@@ -104,31 +125,70 @@ describe('Voating', async function () {
       await contract.createElection('Test Election');
     });
 
-    it('should end an election', async () => {
+    it('should end an election if election is not already ended', async () => {
       await expect(contract.endElection(0))
         .to.emit(contract, "ElectionEnded")
         .withArgs(0);
 
       const election = await contract.getElection(0);
       assert.equal(election.name, 'Test Election');
-      assert.equal(election.isActive, false);
-      assert.equal(election.isEnded, true);
+      assert.equal(election.state, BigInt(2))
     });
 
-    it('should raise error when election ended id election already ended', async () => {
+    it('should raise error on  end election if election already ended', async () => {
       await contract.endElection(0);
 
       await expect(contract.endElection(0))
         .to.be.revertedWithCustomError(contract, 'ElectionAlreadyEnded');
     });
 
-    it('should raise error when end election with invalid election id', async () => {
+    it('should raise error on end election for an invalid election id', async () => {
       await expect(contract.endElection(1))
         .to.be.revertedWithCustomError(contract, 'ElectionNotExists');
     });
 
-    it('should raise error when election ended by not admin', async () => {
+    it('should raise error on end election if call by non admin', async () => {
       await expect(contract.connect(signers[1]).endElection(0))
+        .to.be.revertedWithCustomError(contract, 'NotAdmin');
+    });
+  });
+
+  describe('startElection()', async function () {
+    this.beforeEach(async () => {
+      await contract.createElection('Test Election');
+    });
+
+    it('should start an election if election is not stated or ended already', async () => {
+      await expect(contract.startElection(0))
+        .to.emit(contract, "ElectionStarted")
+        .withArgs(0);
+
+      const election = await contract.getElection(0);
+      assert.equal(election.name, 'Test Election');
+      assert.equal(election.state, BigInt(1))
+    });
+
+    it('should raise error on start election if election already started', async () => {
+      await contract.startElection(0);
+
+      await expect(contract.startElection(0))
+        .to.be.revertedWithCustomError(contract, 'ElectionAlreadyActive');
+    });
+
+    it('should raise error on start election if election has been ended', async () => {
+      await contract.endElection(0);
+
+      await expect(contract.startElection(0))
+        .to.be.revertedWithCustomError(contract, 'ElectionAlreadyEnded');
+    });
+
+    it('should raise error on start election for an invalid election id', async () => {
+      await expect(contract.startElection(1))
+        .to.be.revertedWithCustomError(contract, 'ElectionNotExists');
+    });
+
+    it('should raise error on start election if call by non admin', async () => {
+      await expect(contract.connect(signers[1]).startElection(0))
         .to.be.revertedWithCustomError(contract, 'NotAdmin');
     });
   });
@@ -142,6 +202,7 @@ describe('Voating', async function () {
     });
 
     it('should vote and increase count for candidate', async () => {
+      await contract.startElection(0);
       await expect(contract.connect(signers[1]).vote(0, 0))
         .to.emit(contract, "VoteCast")
         .withArgs(0, signers[1].address);
@@ -154,6 +215,7 @@ describe('Voating', async function () {
     });
 
     it('should raise error if voter already cast vote', async () => {
+      await contract.startElection(0);
       await contract.connect(signers[1]).vote(0, 0);
       assert.equal(await contract.hasUserVoted(0, signers[1].address), true);
 
@@ -161,24 +223,33 @@ describe('Voating', async function () {
         .to.be.revertedWithCustomError(contract, "AlreadyVoted");
     });
 
-    it('should raise error on vote if election ended', async () => {
+    it('should raise error on vote if election not started', async () => {
+      await expect(contract.connect(signers[1]).vote(0, 0))
+        .to.be.revertedWithCustomError(contract, "ElectionNotActive");
+    });
+
+    it('should raise error on vote if election has been ended', async () => {
+      await contract.startElection(0);
       await contract.endElection(0);
 
       await expect(contract.connect(signers[1]).vote(0, 0))
         .to.be.revertedWithCustomError(contract, "ElectionNotActive");
     });
 
-    it('should raise error on vote if voter not register', async () => {
+    it('should raise error on vote if voter has not register', async () => {
+      await contract.startElection(0);
       await expect(contract.connect(signers[2]).vote(0, 0))
         .to.be.revertedWithCustomError(contract, "VoterNotRegistered");
     });
     
-    it('should raise error on vote if invalid candidate', async () => {
+    it('should raise error on vote for an invalid candidate', async () => {
+      await contract.startElection(0);
       await expect(contract.connect(signers[1]).vote(0, 2))
         .to.be.revertedWithCustomError(contract, "InvalidCandidate");
     });
 
-   it('should raise error on vote if invalid election', async () => {
+   it('should raise error on vote for an invalid election', async () => {
+    await contract.startElection(0);
       await expect(contract.connect(signers[1]).vote(1, 0))
         .to.be.revertedWithCustomError(contract, "ElectionNotExists");
     });

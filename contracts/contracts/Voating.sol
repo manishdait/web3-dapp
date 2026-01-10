@@ -4,12 +4,14 @@ pragma solidity ^0.8;
 error NotAdmin();
 error ElectionNotExists();
 error ElectionNotActive();
+error ElectionAlreadyActive();
 error ElectionAlreadyEnded();
 error ElectionNotEnded();
 error VoterNotRegistered();
 error AlreadyVoted();
 error InvalidCandidate();
 error CandidatesLocked();
+error VotersLocked();
 
 contract Voating {
     event ElectionCreated(uint256 indexed electionId, string name);
@@ -17,11 +19,17 @@ contract Voating {
     event VoterRegister(uint256 indexed electionId, address voter);
     event VoteCast(uint256 indexed electionId, address indexed voter);
     event ElectionEnded(uint256 indexed electionId);
+    event ElectionStarted(uint256 indexed electionId);
+
+    enum ElectionState {
+        INITIATED,
+        ACTIVE,
+        ENDED
+    }
 
     struct Election {
         string name;
-        bool isActive;
-        bool isEnded;
+        ElectionState state;
     }
 
     struct Candidate {
@@ -29,7 +37,7 @@ contract Voating {
         uint256 count;
     }
 
-    address public immutable admin;
+    address public admin;
     uint256 public electionCount;
 
     mapping(uint256 => Election) private elections;
@@ -55,8 +63,7 @@ contract Voating {
     function createElection(string calldata electionName) external onlyAdmin {
         elections[electionCount] = Election({
             name: electionName, 
-            isActive: true, 
-            isEnded: false
+            state: ElectionState.INITIATED
         });
 
         emit ElectionCreated(electionCount, electionName);
@@ -66,7 +73,7 @@ contract Voating {
     function addCandidates(uint256 electionId, string calldata candidateName) external onlyAdmin electionExists(electionId) {
         Election memory election = elections[electionId];
 
-        if (!election.isActive || election.isEnded) revert CandidatesLocked();
+        if (election.state != ElectionState.INITIATED) revert CandidatesLocked();
 
         candidates[electionId].push(
             Candidate({name: candidateName, count: 0})
@@ -80,17 +87,31 @@ contract Voating {
     }
 
     function registerVoter(uint256 electionId, address voter) external onlyAdmin electionExists(electionId) {
+        Election memory election = elections[electionId];
+
+        if (election.state != ElectionState.INITIATED) revert VotersLocked();
+
         registerVoters[electionId][voter] = true;
         emit VoterRegister(electionId, voter);
+    }
+
+    function startElection(uint256 electionId) external onlyAdmin electionExists(electionId) {
+        Election storage election = elections[electionId];
+
+        if (election.state == ElectionState.ACTIVE) revert ElectionAlreadyActive();
+        if (election.state == ElectionState.ENDED) revert ElectionAlreadyEnded();
+
+        election.state = ElectionState.ACTIVE;
+
+        emit ElectionStarted(electionId);
     }
 
     function endElection(uint256 electionId) external onlyAdmin electionExists(electionId) {
         Election storage election = elections[electionId];
 
-        if (election.isEnded) revert ElectionAlreadyEnded();
+        if (election.state == ElectionState.ENDED) revert ElectionAlreadyEnded();
 
-        election.isActive = false;
-        election.isEnded = true;
+        election.state = ElectionState.ENDED;
 
         emit ElectionEnded(electionId);
     }
@@ -98,7 +119,7 @@ contract Voating {
     function vote(uint256 electionId, uint256 candidateId) external electionExists(electionId) {
         Election storage election = elections[electionId];
 
-        if (!election.isActive || election.isEnded) revert ElectionNotActive();
+        if (election.state != ElectionState.ACTIVE) revert ElectionNotActive();
         if (!registerVoters[electionId][msg.sender]) revert VoterNotRegistered();
         if (hasVoted[electionId][msg.sender]) revert AlreadyVoted();
         if (candidateId >= candidates[electionId].length) revert InvalidCandidate();
@@ -109,9 +130,9 @@ contract Voating {
         emit VoteCast(electionId, msg.sender);
     }
 
-    function getElection(uint256 electionId) external view electionExists(electionId) returns (string memory name, bool isActive, bool isEnded) {
+    function getElection(uint256 electionId) external view electionExists(electionId) returns (string memory name, ElectionState state) {
         Election storage election = elections[electionId];
-        return (election.name, election.isActive, election.isEnded);    
+        return (election.name, election.state);    
     }
 
     function getCandidates(uint256 electionId) external view electionExists(electionId) returns (Candidate[] memory) {
