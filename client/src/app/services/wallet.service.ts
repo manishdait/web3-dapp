@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { BrowserProvider, JsonRpcSigner } from 'ethers';
 import { TransactionService } from "./transaction.service";
+import { Observable, Subject } from "rxjs";
 
 
 declare global {
@@ -20,8 +21,9 @@ export class WalletService {
   private browserProvider: BrowserProvider | null = null;
   private rpcSigner: JsonRpcSigner | null = null;
 
+  private _walletConnect: Subject<boolean> = new Subject<boolean>();
+
   constructor (public transactionService: TransactionService) {
-    console.log("WalletService");
     if (window.ethereum || window.ethereum !== undefined) {
       this.hasWallet = true;
     }
@@ -43,6 +45,8 @@ export class WalletService {
       const admin = await this.transactionService.getAdmin();
       this.isAdmin = admin === this.address;
 
+      this._walletConnect.next(true);
+
       return true;
     } catch (error) {
       return false;
@@ -63,5 +67,9 @@ export class WalletService {
     }
 
     return this.rpcSigner;
-  } 
+  }
+
+  get connect(): Observable<boolean> {
+    return this._walletConnect.asObservable()
+  }
 }

@@ -21,10 +21,28 @@ export class Details {
   election = signal<Election | null>(null);
 
   candidateForm = signal(false);
+  voterForm = signal(false);
+
+  hasRegister = signal(false);
+  canVote = signal(false);
+
+  address = signal(this.walletService.address);
 
   constructor () {
+    this.walletService.connect.subscribe(() => {
+      if (this.walletService.address !== null) {
+        this.transactionService.isVoterRegister(this.electionId, this.walletService.address)
+          .then(data => this.hasRegister.set(data));
+
+        this.transactionService.canVote(this.electionId, this.walletService.address)
+          .then(data => this.canVote.set(data));
+      }
+    });
+
     this.transactionService.getElection(this.electionId)
       .then(data => this.election.set(data));
+    
+    
   }
 
   isAdmin() {
@@ -35,7 +53,27 @@ export class Details {
     this.candidateForm.update(toggle => !toggle);
   }
 
+  toggleVoterForm() {
+    this.voterForm.update(toggle => !toggle);
+  }
+
   async registerCandidateTx(candidateName: string) {
     this.transactionService.registerCandidate(this.electionId, candidateName, this.walletService.signer);
+  }
+
+  async registerVoterTx(voterAddress: string) {
+    this.transactionService.registerVoter(this.electionId, voterAddress, this.walletService.signer);
+  }
+
+  async startElectionTx() {
+    this.transactionService.startElection(this.electionId, this.walletService.signer);
+  }
+
+  async castVoteTx(candidateId: number) {
+    this.transactionService.castVote(this.electionId, candidateId, this.walletService.signer);
+  }
+
+  async endElectionTx() {
+    this.transactionService.endElection(this.electionId, this.walletService.signer);
   }
 }

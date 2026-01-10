@@ -75,4 +75,42 @@ export class TransactionService {
   async registerCandidate(electionId: number, candidateName: string, signer: JsonRpcSigner) {
     await this.contract!.connect(signer).addCandidates(electionId, candidateName);
   }
+
+  async registerVoter(electionId: number, voterAddress: string, signer: JsonRpcSigner) {
+    await this.contract!.connect(signer).registerVoter(electionId, voterAddress);
+  }
+
+  async startElection(electionId: number, signer: JsonRpcSigner) {
+    await this.contract!.connect(signer).startElection(electionId);
+  }
+
+  async castVote(electionId: number, candidateId: number, signer: JsonRpcSigner) {
+    await this.contract!.connect(signer).vote(electionId, candidateId);
+  }
+
+  async isVoterRegister(electionId: number, voterAddress: string): Promise<boolean> {
+    return this.contract!.connect(this.rpcProvider).isVoterRegister(electionId, voterAddress);
+  }
+
+  async hasAlreadyVoted(electionId: number, voterAddress: string): Promise<boolean> {
+    return this.contract!.connect(this.rpcProvider).hasUserVoted(electionId, voterAddress);
+  }
+
+  async canVote(electionId: number, voterAddress: string): Promise<boolean> {
+    const register = await this.isVoterRegister(electionId, voterAddress);
+    if (!register){
+      return false;
+    }
+
+    const voted = await this.hasAlreadyVoted(electionId, voterAddress);
+    if (voted) {
+      return false;
+    }
+
+    return true;
+  }
+
+  async endElection(electionId: number, signer: JsonRpcSigner) {
+    await this.contract!.connect(signer).endElection(electionId);
+  }
 }
