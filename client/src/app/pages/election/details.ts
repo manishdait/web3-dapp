@@ -27,6 +27,11 @@ export class Details {
   canVote = signal(false);
 
   address = signal(this.walletService.address);
+  loading = signal(true);
+  processing = signal(false);
+  voating = signal(false);
+
+  shadows = new Array(5);
 
   constructor () {
     this.walletService.connect.subscribe(() => {
@@ -39,10 +44,16 @@ export class Details {
       }
     });
 
+    this.loading.set(true);
     this.transactionService.getElection(this.electionId)
-      .then(data => this.election.set(data));
-    
-    
+      .then(data => {
+        this.election.set(data);
+        this.loading.set(false);
+      })
+      .catch(error => {
+        console.error(error);
+        this.loading.set(false);
+      });
   }
 
   isAdmin() {
@@ -58,22 +69,60 @@ export class Details {
   }
 
   async registerCandidateTx(candidateName: string) {
-    this.transactionService.registerCandidate(this.electionId, candidateName, this.walletService.signer);
+    this.processing.set(true);
+    try {
+      await this.transactionService.registerCandidate(this.electionId, candidateName, this.walletService.signer);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      this.processing.set(false);
+      this.toggleCandidateForm();
+    }
   }
 
   async registerVoterTx(voterAddress: string) {
-    this.transactionService.registerVoter(this.electionId, voterAddress, this.walletService.signer);
+    this.processing.set(true);
+
+    try {
+      await this.transactionService.registerVoter(this.electionId, voterAddress, this.walletService.signer);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      this.processing.set(false);
+      this.toggleVoterForm();
+    }
   }
 
   async startElectionTx() {
-    this.transactionService.startElection(this.electionId, this.walletService.signer);
+    this.processing.set(true);
+    try {
+      await this.transactionService.startElection(this.electionId, this.walletService.signer);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      this.processing.set(false);
+    }
   }
 
   async castVoteTx(candidateId: number) {
-    this.transactionService.castVote(this.electionId, candidateId, this.walletService.signer);
+    this.voating.set(true);
+    try {
+      await this.transactionService.castVote(this.electionId, candidateId, this.walletService.signer);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      this.voating.set(false);
+    }
   }
 
   async endElectionTx() {
-    this.transactionService.endElection(this.electionId, this.walletService.signer);
+    this.processing.set(true);
+    try {
+      await this.transactionService.endElection(this.electionId, this.walletService.signer);
+      } catch (e) {
+      console.error(e);
+    } finally {
+      this.processing.set(false);
+    }
   }
 }

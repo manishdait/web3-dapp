@@ -7,14 +7,21 @@
 </div>
 
 <div class="flex gap-4 flex-wrap py-4">
-  @for (election of elections(); track election.id) {
-    <div class="w-[min(100%,20rem)] flex flex-col gap-2 rounded-md border-[.1em] border-gray-200 p-4 cursor-pointer hover:shadow-sm" routerLink="{{ 'election/' + election.id }}">
-      <span class="text-[1.2rem] font-semibold text-purple-600">{{ election.name.toUpperCase() }}</span>
-      <span class="text-sm">{{ 'Candidates Count: ' + election.candidates.length }}</span>
-    </div>
-  } @empty {
-    <div class="w-full rounded-md border-[.1em] border-gray-200 p-4">
-      <span class="text-base text-gray-800">No elections has been created yet..</span>
+@if (!processing()) {
+    @for (election of elections(); track election.id) {
+      <div class="w-[min(100%,20rem)] flex flex-col gap-2 rounded-md border-[.1em] border-gray-200 p-4 cursor-pointer hover:shadow-sm" routerLink="{{ 'election/' + election.id }}">
+        <span class="text-[1.2rem] font-semibold text-purple-600">{{ election.name.toUpperCase() }}</span>
+        <span class="text-sm">{{ 'Candidates Count: ' + election.candidates.length }}</span>
+      </div>
+    } @empty {
+      <div class="w-full rounded-md border-[.1em] border-gray-200 p-4">
+        <span class="text-base text-gray-800">No elections has been created yet..</span>
+      </div>
+    }
+} @else {
+  @for (shadow of shadows; track $index) {
+    <div class="w-[min(100%,20rem)] h-32 animate">
     </div>
   }
+}
 </div>

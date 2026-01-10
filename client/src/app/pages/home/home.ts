@@ -14,11 +14,20 @@ export class Home {
   private readonly appComponent = inject(App)
 
   elections = signal<Election[]>([]);
+  processing = signal(false);
+
+  shadows = new Array(5);
 
   constructor () {
+    this.processing.set(true)
     this.transactionService.getElections()
-      .then(data => {
+      .then(data => {  
         this.elections.set(data);
+        this.processing.set(false);
+      })
+      .catch(error => {
+        console.error(error);
+        this.processing.set(false);
       });
   }
 

@@ -16,24 +16,34 @@
       <span class="block text-center p-4 mb-4 border-[.1em] border-sky-600 rounded-md bg-sky-600/5 text-sky-600 font-medium">The election is in the initiating phase</span>
     }
 
-    <h1 class="text-2xl font-medium">{{ election()!.name.toUpperCase() }}</h1>
+    @if (!loading()) {
+      <h1 class="text-2xl font-medium">{{ election()!.name.toUpperCase() }}</h1>
+    } @else {
+      <span class="block w-[min(50rem,100%)] h-6 animate"></span>
+    }
 
     <ul class="mt-4 flex flex-col gap-4">
-      @for (candidate of election()!.candidates; track candidate.id) {
-        <li class="flex gap-2 items-center justify-between w-full border-[.1em] border-gray-200 rounded-md p-4">
-          <div class="flex flex-col gap-1">
-            <span class="text-[1.2rem] font-semibold">{{ candidate.name }}</span>
-            <span>{{ 'Vote Count: ' + candidate.voteCount }}</span>
-          </div>
+      @if (!loading()) {
+       @for (candidate of election()!.candidates; track candidate.id) {
+          <li class="flex gap-2 items-center justify-between w-full border-[.1em] border-gray-200 rounded-md p-4">
+            <div class="flex flex-col gap-1">
+              <span class="text-[1.2rem] font-semibold">{{ candidate.name }}</span>
+              <span>{{ 'Vote Count: ' + candidate.voteCount }}</span>
+            </div>
 
-          @if (election()!.state === 1 && canVote()) {
-            <button class="border-[.1em] border-purple-600 rounded-md text-1rem text-purple-600 font-medium px-2 py-1 cursor-pointer hover:bg-neutral-900/10" (click)="castVoteTx(candidate.id)">Vote</button>
-          }
-        </li>
-      } @empty {
-        <li class="w-full border-[.1em] border-gray-200 rounded-md p-4">
-          <span>No candidates available for these candidates...</span>
-        </li>
+            @if (election()!.state === 1 && canVote()) {
+              <button class="border-[.1em] border-purple-600 rounded-md text-1rem text-purple-600 font-medium px-2 py-1 cursor-pointer hover:bg-neutral-900/10" (click)="castVoteTx(candidate.id)">Vote</button>
+            }
+          </li>
+        } @empty {
+          <li class="w-full border-[.1em] border-gray-200 rounded-md p-4">
+            <span>No candidates available for these candidates...</span>
+          </li>
+        }
+      } @else {
+        @for (shadow of shadows; track $index) {
+          <li class="w-full h-20 animate"></li>
+        }
       }
     </ul>
 
@@ -41,13 +51,13 @@
       <div class="mt-4 flex-wrap flex items-center justify-end gap-4">
         <button class="border-[.1em] border-purple-600 rounded-md text-1rem text-purple-500 font-medium px-2 py-1 cursor-pointer hover:bg-neutral-900/10" (click)="toggleCandidateForm()">Register Candidate</button>
         <button class="border-[.1em] border-purple-600 rounded-md text-1rem text-purple-500 font-medium px-2 py-1 cursor-pointer hover:bg-neutral-900/10" (click)="toggleVoterForm()">Register Voter</button>
-        <button class="bg-purple-600 border-[.1em] border-purple-600 rounded-md text-1rem text-white font-medium px-2 py-1 cursor-pointer hover:bg-purple-700 hover:border-purple-700" (click)="startElectionTx()">Start Election</button>
+        <button class="bg-purple-600 border-[.1em] border-purple-600 rounded-md text-1rem text-white font-medium px-2 py-1 cursor-pointer hover:bg-purple-700 hover:border-purple-700" [class.loading]="processing()" [disabled]="processing()" (click)="startElectionTx()">Start Election</button>
       </div>
     }
 
     @if (isAdmin() && election()!.state === 1) {
       <div class="mt-4 flex-wrap flex items-center justify-end gap-4">
-       <button class="bg-red-600 border-[.1em] border-red-600 rounded-md text-1rem text-white font-medium px-2 py-1 cursor-pointer hover:bg-red-700 hover:border-red-700" (click)="endElectionTx()">End Election</button>
+       <button class="bg-red-600 border-[.1em] border-red-600 rounded-md text-1rem text-white font-medium px-2 py-1 cursor-pointer hover:bg-red-700 hover:border-red-700" [class.loading]="processing()" [disabled]="processing()" (click)="endElectionTx()">End Election</button>
       </div>
     }
   }
@@ -64,8 +74,8 @@
       </div>
 
       <div class="mt-4 flex gap-2">
-        <button class="border-[.1em] border-purple-600 rounded-md text-1rem text-purple-600 font-medium px-2 py-1 cursor-pointer hover:bg-neutral-900/10" type="button" (click)="toggleCandidateForm()">Cancel</button>
-        <button class="bg-purple-600 border-[.1em] border-purple-600 rounded-md text-1rem text-white font-medium px-2 py-1 cursor-pointer hover:bg-purple-700 hover:border-purple-700" (click)="registerCandidateTx(name.value)">Register</button>
+        <button class="border-[.1em] border-purple-600 rounded-md text-1rem text-purple-600 font-medium px-2 py-1 cursor-pointer hover:bg-neutral-900/10 disabled:border-gray-400 disabled:text-gray-400" [disabled]="processing()" type="button" (click)="toggleCandidateForm()">Cancel</button>
+        <button class="bg-purple-600 border-[.1em] border-purple-600 rounded-md text-1rem text-white font-medium px-2 py-1 cursor-pointer hover:bg-purple-700 hover:border-purple-700" [class.loading]="processing()" [disabled]="processing() && candidateForm()" (click)="registerCandidateTx(name.value)">Register</button>
       </div>
     </div>
   </div>
@@ -82,8 +92,8 @@
       </div>
 
       <div class="mt-4 flex gap-2">
-        <button class="border-[.1em] border-purple-600 rounded-md text-1rem text-purple-600 font-medium px-2 py-1 cursor-pointer hover:bg-neutral-900/10" type="button" (click)="toggleVoterForm()">Cancel</button>
-        <button class="bg-purple-600 border-[.1em] border-purple-600 rounded-md text-1rem text-white font-medium px-2 py-1 cursor-pointer hover:bg-purple-700 hover:border-purple-700" (click)="registerVoterTx(address.value)">Register</button>
+        <button class="border-[.1em] border-purple-600 rounded-md text-1rem text-purple-600 font-medium px-2 py-1 cursor-pointer hover:bg-neutral-900/10 disabled:border-gray-400 disabled:text-gray-400" [disabled]="processing()" type="button" (click)="toggleVoterForm()">Cancel</button>
+        <button class="bg-purple-600 border-[.1em] border-purple-600 rounded-md text-1rem text-white font-medium px-2 py-1 cursor-pointer hover:bg-purple-700 hover:border-purple-700" [class.loading]="processing() && voterForm()" [disabled]="processing()" (click)="registerVoterTx(address.value)">Register</button>
       </div>
     </div>
   </div>

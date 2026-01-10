@@ -1,2 +1,75 @@
 /* You can add global styles to this file, and also import other style files */
 @import "tailwindcss";
+
+@layer base {
+  button {
+    @apply relative
+  }
+}
+
+html {
+  font-size: 1rem;
+}
+
+@media screen and (max-width: 600px) {
+  html {
+    font-size: .9rem;
+  }
+}
+
+@media screen and (max-width: 400px) {
+  html {
+    font-size: .8rem;
+  }
+}
+
+@media screen and (max-width: 200px) {
+  html {
+    font-size: .7rem;
+  }
+}
+
+.loading {
+  color: transparent;
+}
+.loading::after {
+  opacity: 1;
+}
+
+button::after {
+  content: '';
+  position: absolute;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: .15em solid #ffffff00;
+  border-right-color: #fff;
+  border-radius: 50%;
+  top: 10%;
+  left: 30%;
+  opacity: 0;
+  animation: rotate .7s linear  infinite;
+}
+
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate {
+  animation: shimmer 3s;
+  animation-iteration-count: infinite;
+  background: linear-gradient(to right, #fafafa 5%, #f6f6f6 25%, #fafafa 35%);
+  background-size: 1000px 100%;
+}
+@keyframes shimmer {
+  from {
+    background-position: -1000px 0;
+  }
+  to {
+    background-position: 1000px 0;
+  }
+}

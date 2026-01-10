@@ -15,6 +15,10 @@ export class App {
 
   isAdmin = signal(false);
   electionForm = signal(false);
+  processing = signal(false);
+
+  connectingWallet = signal(false);
+  address = signal<string|null>(null);
 
   constructor () {
     if (!this.walletService.hasWallet) {
@@ -24,15 +28,32 @@ export class App {
   }
 
   async connectWallet() {
-    const connected = await this.walletService.connectWallet();
-    
-    if (connected) {
-      this.isAdmin.set(this.walletService.isAdmin);
-    }
+    this.connectingWallet.set(true);
+
+    try {
+      const connected = await this.walletService.connectWallet();
+      if (connected) {
+        this.isAdmin.set(this.walletService.isAdmin);  
+        this.address.set(this.walletService.address);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      this.connectingWallet.set(false);
+    } 
   }
 
   async createElectionTx(electionName: string) {
-    this.transactionService.createElection(electionName, this.walletService.signer);
+    this.processing.set(true);
+
+    try {
+      await this.transactionService.createElection(electionName, this.walletService.signer);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      this.processing.set(false);
+      this.toggleElectionForm();
+    }
   }
 
   toggleElectionForm() {
