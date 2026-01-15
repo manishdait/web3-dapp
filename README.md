@@ -1,4 +1,4 @@
-# web3-voating-dapp
+# web3-dapp
 
 A simple Web3 Voting Dapp built for learning purposes using **Solidity**, **Hardhat**, and **Angular**. This project demonstrates how use hardhat and angular to interact with solidity contract.
 
